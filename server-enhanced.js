@@ -192,7 +192,7 @@ app.delete('/api/users/:id', authenticate, isAdmin, async (req, res) => {
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
-    status: 'OK', 
+    status: 'healthy', 
     timestamp: new Date().toISOString(),
     database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
   });

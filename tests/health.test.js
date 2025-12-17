@@ -2,7 +2,7 @@ const request = require('supertest');
 
 // Mock environment variables
 process.env.NODE_ENV = 'test';
-process.env.MONGODB_URI = 'mongodb://localhost:27017/inventory-test';
+process.env.MONGODB_URI = 'mongodb://admin:password123@localhost:27017/inventory-test?authSource=admin';
 process.env.JWT_SECRET = 'test-secret-key';
 process.env.SESSION_SECRET = 'test-session-secret';
 

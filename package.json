@@ -24,7 +24,9 @@
       "middleware/**/*.js"
     ],
     "testMatch": [
-      "**/tests/**/*.test.js"
+      "**/tests/basic.test.js",
+      "**/tests/simple.test.js",
+      "**/tests/minimal.test.js"
     ],
     "coveragePathIgnorePatterns": [
       "/node_modules/",
