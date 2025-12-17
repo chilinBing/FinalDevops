@@ -18,13 +18,20 @@ spec:
         image: faizanazam/inventory-management:latest
         ports:
         - containerPort: 3000
+        envFrom:
+        - configMapRef:
+            name: inventory-config
         env:
-        - name: NODE_ENV
-          value: "production"
-        - name: PORT
-          value: "3000"
-        - name: MONGODB_URI
-          value: "mongodb://admin:password123@mongodb-service:27017/inventory?authSource=admin"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: inventory-secrets
+              key: jwt-secret
+        - name: SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: inventory-secrets
+              key: session-secret
         resources:
           requests:
             memory: "128Mi"

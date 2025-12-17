@@ -92,35 +92,35 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-  deploy-to-aks:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-    
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v3
-    
-    - name: Get AKS credentials
-      run: |
-        az aks get-credentials --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_AKS_CLUSTER }}
-    
-    - name: Update deployment image
-      run: |
-        sed -i 's|your-dockerhub-username/inventory-management:latest|${{ env.DOCKER_IMAGE }}:${{ github.sha }}|g' k8s/app-deployment.yaml
-    
-    - name: Deploy to AKS
-      run: |
-        kubectl apply -f k8s/
-        kubectl rollout status deployment/inventory-app -n inventory-system --timeout=300s
-    
-    - name: Get service URL
-      run: |
-        kubectl get service inventory-app-service -n inventory-system
+  # deploy-to-aks:
+  #   needs: build-and-push
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main'
+  #   
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   
+  #   - name: Azure Login
+  #     uses: azure/login@v1
+  #     with:
+  #       creds: ${{ secrets.AZURE_CREDENTIALS }}
+  #   
+  #   - name: Set up kubectl
+  #     uses: azure/setup-kubectl@v3
+  #   
+  #   - name: Get AKS credentials
+  #     run: |
+  #       az aks get-credentials --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_AKS_CLUSTER }}
+  #   
+  #   - name: Update deployment image
+  #     run: |
+  #       sed -i 's|your-dockerhub-username/inventory-management:latest|${{ env.DOCKER_IMAGE }}:${{ github.sha }}|g' k8s/app-deployment.yaml
+  #   
+  #   - name: Deploy to AKS
+  #     run: |
+  #       kubectl apply -f k8s/
+  #       kubectl rollout status deployment/inventory-app -n inventory-system --timeout=300s
+  #   
+  #   - name: Get service URL
+  #     run: |
+  #       kubectl get service inventory-app-service -n inventory-system
