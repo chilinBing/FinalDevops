@@ -1,0 +1,87 @@
+services:
+  # MongoDB Database Service
+  database:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: inventory-database
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: inventory
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_logs:/var/log/mongodb
+    networks:
+      - inventory-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backend API Service
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: inventory-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGODB_URI: mongodb://admin:password123@database:27017/inventory?authSource=admin
+      JWT_SECRET: your-secret-key-change-in-production-12345
+      SESSION_SECRET: your-session-secret-change-in-production-67890
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - inventory-network
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Frontend Web Service
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: inventory-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - inventory-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+# Volumes for persistent data
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_logs:
+    driver: local
+
+# Network for service communication
+networks:
+  inventory-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -1,7 +1,43 @@
+// Check authentication on page load
+function checkAuth() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/login.html';
+        return false;
+    }
+    return true;
+}
+
+// Logout function
+function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login.html';
+}
+
+// Load user info
+async function loadUserInfo() {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    if (user.username) {
+        document.getElementById('username').textContent = `Welcome, ${user.username}`;
+    }
+}
+
+// Check auth before initializing
+if (!checkAuth()) {
+    throw new Error('Not authenticated');
+}
+
+// Load user info
+loadUserInfo();
+
 class InventoryManager {
     constructor() {
         this.apiBase = '/api/inventory';
         this.currentEditId = null;
+        this.token = localStorage.getItem('token');
         this.initializeEventListeners();
         this.loadInventory();
     }
@@ -58,7 +94,8 @@ class InventoryManager {
         const response = await fetch(this.apiBase, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.token}`
             },
             body: JSON.stringify(itemData)
         });
@@ -75,7 +112,8 @@ class InventoryManager {
         const response = await fetch(`${this.apiBase}/${id}`, {
             method: 'PUT',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.token}`
             },
             body: JSON.stringify(itemData)
         });
@@ -90,7 +128,10 @@ class InventoryManager {
 
     async deleteItem(id) {
         const response = await fetch(`${this.apiBase}/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${this.token}`
+            }
         });
 
         if (!response.ok) {
@@ -108,7 +149,11 @@ class InventoryManager {
         try {
             inventoryList.innerHTML = '<div class="loading">Loading inventory...</div>';
             
-            const response = await fetch(this.apiBase);
+            const response = await fetch(this.apiBase, {
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
+                }
+            });
             if (!response.ok) {
                 throw new Error('Failed to load inventory');
             }
@@ -166,7 +211,11 @@ class InventoryManager {
 
     async editItem(id) {
         try {
-            const response = await fetch(`${this.apiBase}/${id}`);
+            const response = await fetch(`${this.apiBase}/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
+                }
+            });
             if (!response.ok) {
                 throw new Error('Failed to load item details');
             }
