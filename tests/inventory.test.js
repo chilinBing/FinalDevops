@@ -18,9 +18,17 @@ describe('Inventory API Tests', () => {
   beforeAll(async () => {
     // Connect to test database
     if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGODB_URI);
+      try {
+        await mongoose.connect(process.env.MONGODB_URI, {
+          serverSelectionTimeoutMS: 5000, // 5 second timeout
+        });
+        console.log('Connected to MongoDB for testing');
+      } catch (error) {
+        console.error('MongoDB connection failed:', error.message);
+        throw error;
+      }
     }
-  });
+  }, 10000); // 10 second timeout
 
   afterAll(async () => {
     // Clean up and close connection

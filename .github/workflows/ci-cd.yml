@@ -41,6 +41,17 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
+    - name: Wait for MongoDB
+      run: |
+        for i in {1..30}; do
+          if mongosh --host localhost:27017 --username admin --password password123 --authenticationDatabase admin --eval "db.adminCommand('ping')" > /dev/null 2>&1; then
+            echo "MongoDB is ready"
+            break
+          fi
+          echo "Waiting for MongoDB... ($i/30)"
+          sleep 2
+        done
+    
     - name: Run automated tests
       env:
         NODE_ENV: test
