@@ -8,7 +8,7 @@ on:
 
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/inventory-management
-  AZURE_RESOURCE_GROUP: inventory-rg
+  AZURE_RESOURCE_GROUP: inventory-rg-sea
   AZURE_AKS_CLUSTER: inventory-aks
 
 jobs:
@@ -103,35 +103,47 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-  # deploy-to-aks:
-  #   needs: build-and-push
-  #   runs-on: ubuntu-latest
-  #   if: github.ref == 'refs/heads/main'
-  #   
-  #   steps:
-  #   - uses: actions/checkout@v4
-  #   
-  #   - name: Azure Login
-  #     uses: azure/login@v1
-  #     with:
-  #       creds: ${{ secrets.AZURE_CREDENTIALS }}
-  #   
-  #   - name: Set up kubectl
-  #     uses: azure/setup-kubectl@v3
-  #   
-  #   - name: Get AKS credentials
-  #     run: |
-  #       az aks get-credentials --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_AKS_CLUSTER }}
-  #   
-  #   - name: Update deployment image
-  #     run: |
-  #       sed -i 's|your-dockerhub-username/inventory-management:latest|${{ env.DOCKER_IMAGE }}:${{ github.sha }}|g' k8s/app-deployment.yaml
-  #   
-  #   - name: Deploy to AKS
-  #     run: |
-  #       kubectl apply -f k8s/
-  #       kubectl rollout status deployment/inventory-app -n inventory-system --timeout=300s
-  #   
-  #   - name: Get service URL
-  #     run: |
-  #       kubectl get service inventory-app-service -n inventory-system
+  deploy-to-aks:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+    
+    - name: Get AKS credentials
+      run: |
+        az aks get-credentials --resource-group inventory-rg-sea --name inventory-aks
+    
+    - name: Apply Kubernetes secrets and config
+      run: |
+        kubectl apply -f k8s/secrets.yaml
+        kubectl apply -f k8s/
+    
+    - name: Update deployment with new image
+      run: |
+        kubectl set image deployment/inventory-app inventory-app=${{ env.DOCKER_IMAGE }}:${{ github.sha }} -n inventory-system
+    
+    - name: Wait for rollout to complete
+      run: |
+        kubectl rollout status deployment/inventory-app -n inventory-system --timeout=300s
+    
+    - name: Verify deployment
+      run: |
+        echo "🎉 Deployment completed successfully!"
+        kubectl get pods -n inventory-system
+        kubectl get services -n inventory-system
+        
+    - name: Get application URL
+      run: |
+        PUBLIC_IP=$(kubectl get service inventory-app-service -n inventory-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        echo "🌐 Application URL: http://$PUBLIC_IP"
+        echo "🏥 Health check: http://$PUBLIC_IP/health"
