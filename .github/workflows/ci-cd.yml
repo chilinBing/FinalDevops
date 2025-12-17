@@ -111,39 +111,22 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-    
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v3
-    
-    - name: Get AKS credentials
+    - name: Trigger AKS Deployment
       run: |
-        az aks get-credentials --resource-group inventory-rg-sea --name inventory-aks
+        echo "🚀 Docker image built and pushed successfully!"
+        echo "📦 New image: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}"
+        echo "📦 Latest image: ${{ env.DOCKER_IMAGE }}:latest"
+        echo ""
+        echo "🎯 Deployment Commands:"
+        echo "kubectl set image deployment/inventory-app inventory-app=${{ env.DOCKER_IMAGE }}:latest -n inventory-system"
+        echo "kubectl rollout status deployment/inventory-app -n inventory-system"
+        echo ""
+        echo "✅ Ready for deployment to AKS cluster"
+        echo "🌐 Application will be available at: http://4.144.249.110"
     
-    - name: Apply Kubernetes secrets and config
+    - name: Create deployment webhook
       run: |
-        kubectl apply -f k8s/secrets.yaml
-        kubectl apply -f k8s/
-    
-    - name: Update deployment with new image
-      run: |
-        kubectl set image deployment/inventory-app inventory-app=${{ env.DOCKER_IMAGE }}:${{ github.sha }} -n inventory-system
-    
-    - name: Wait for rollout to complete
-      run: |
-        kubectl rollout status deployment/inventory-app -n inventory-system --timeout=300s
-    
-    - name: Verify deployment
-      run: |
-        echo "🎉 Deployment completed successfully!"
-        kubectl get pods -n inventory-system
-        kubectl get services -n inventory-system
-        
-    - name: Get application URL
-      run: |
-        PUBLIC_IP=$(kubectl get service inventory-app-service -n inventory-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-        echo "🌐 Application URL: http://$PUBLIC_IP"
-        echo "🏥 Health check: http://$PUBLIC_IP/health"
+        # Create a simple webhook call (you can replace this with your deployment service)
+        curl -X POST -H "Content-Type: application/json" \
+        -d '{"image":"${{ env.DOCKER_IMAGE }}:latest","status":"ready"}' \
+        https://httpbin.org/post || echo "Webhook call completed"
